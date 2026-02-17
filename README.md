@@ -19,9 +19,7 @@ pip install -r requirement.txt
 ```
 
 
-## 使用
-
-### GUI 模式（推荐）
+## GUI 模式
 
 ```bash
 python gui.py
@@ -33,6 +31,8 @@ GUI 提供以下能力：
 - 多选 / 全选 / 取消全选
 - 勾选测试模式（每角色前 3 张）
 - 选择输出目录（默认项目目录下 `output`）
+
+## CLI 模式
 
 ### 0) 启动后输入游戏根目录
 
