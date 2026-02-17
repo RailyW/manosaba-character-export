@@ -32,34 +32,34 @@ bundle文件存放位置：
 manosaba_game\manosaba_Data\StreamingAssets\aa\StandaloneWindows64\naninovel-characters_assets_naninovel\characters
 ```
 
-支持解析的人物：
+### 1) 测试模式
 
-- alisa.bundle
-- anan.bundle
-- coco.bundle
-- ema.bundle
-- hanna.bundle
-- hiro.bundle
-- leia.bundle
-- margo.bundle
-- meruru.bundle
-- miria.bundle
-- nanoka.bundle
-- noah.bundle
-- sherry.bundle
-
-其他角色，如狱卒，典狱长，小雪，因为文件结构不同，暂不支持，之后可能会支持，也可能不会支持。
-
-### 1) 测试模式（每个角色导出前 3 个组合）
+每个角色导出前 3 个组合
 
 ```bash
 python main.py --test
 ```
 
-### 2) 全量模式（导出全部组合）
+仅导出指定角色
+
+例如仅测试 `yuki.bundle`：
+
+```bash
+python main.py --test yuki
+```
+
+### 2) 全量导出
+
+导出全部角色
 
 ```bash
 python main.py
+```
+
+导出指定角色，例如仅导出 `yuki.bundle` 的全部图像：
+
+```bash
+python main.py --character yuki
 ```
 
 ### 3) 指定输入/输出目录
@@ -79,7 +79,10 @@ python main.py --verbose
 
 - `--characters-dir`：角色 bundle 目录，默认 `resources/characters`
 - `--output-dir`：输出目录，默认 `output`
-- `--test`：测试模式，每个角色仅导出 3 张
+- `--test`：测试模式。
+  - 不带值：每个角色仅导出前 3 张
+  - 带角色名：仅测试指定角色（如 `--test yuki`）
+- `--character`：仅导出指定角色的全部图像（如 `--character yuki`）
 - `--verbose`：输出详细日志
 
 
@@ -100,14 +103,3 @@ output/
 - `report.json`：本次运行汇总报告（导出数、跳过数、错误信息等）
 - `output/<character>/*.png`：最终导出的角色图像
 - `output/render_trace/<character>/*.json`：每张图的渲染轨迹记录（DEBUG用）
-
-
-## 常用命令示例
-
-```bash
-# 快速检查（推荐）
-python main.py --test
-
-# 全量导出
-python main.py
-```

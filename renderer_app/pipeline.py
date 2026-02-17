@@ -17,10 +17,13 @@ import shutil
 from pathlib import Path
 from typing import Dict, List, Set
 
+import UnityPy
+
 from .bundle_loader import load_bundle_character
 from .compositor import compose_active_renderers
 from .expression import evaluate_expression, resolve_go_path
 from .models import RendererEntry
+from .simple_mode import extract_simple_mode_sprites
 from .utils import sanitize_filename
 from .whitelist import get_whitelist_roots
 
@@ -48,14 +51,76 @@ def run_pipeline(args) -> None:
 
     report = {"characters_root": str(root), "output_root": str(out_root), "characters": {}}
 
-    for bundle in sorted(root.glob("*.bundle")):
+    all_bundles = sorted(root.glob("*.bundle"))
+    if args.character:
+        target = str(args.character).strip().lower()
+        all_bundles = [b for b in all_bundles if b.stem.lower() == target]
+        if not all_bundles:
+            log(f"[提示] 未找到指定角色：{target}")
+    elif args.test and args.test != "__ALL__":
+        target = str(args.test).strip().lower()
+        all_bundles = [b for b in all_bundles if b.stem.lower() == target]
+        if not all_bundles:
+            log(f"[提示] 未找到指定测试角色：{target}")
+
+    for bundle in all_bundles:
         cname = bundle.stem
         log(f"[角色] 开始处理：{cname}")
 
         data, err = load_bundle_character(bundle)
         if err:
-            report["characters"][cname] = {"status": "skipped", "reason": err}
-            log(f"  [跳过] {err}")
+            # 常规结构失败后，尝试 simple_mode 分支。
+            env = UnityPy.load(str(bundle))
+            simple_records, actor_name, simple_err = extract_simple_mode_sprites(env)
+            if simple_records:
+                c_report = {
+                    "status": "ok",
+                    "bundle": bundle.name,
+                    "mode": "simple_mode",
+                    "exported": 0,
+                    "skipped": 0,
+                    "unknown_tokens": {},
+                    "missing_paths": {},
+                    "missing_whitelist_paths": {},
+                    "errors": {},
+                    "offset_source": "simple_mode: MonoBehaviour.sprites",
+                }
+
+                export_records = simple_records
+                # 在测试模式下，simple_mode 也遵循“仅前 3 项”的节流规则。
+                if args.test:
+                    export_records = export_records[:3]
+
+                for rec in export_records:
+                    combo_name = rec["name"]
+                    out_path = out_root / cname / (sanitize_filename(combo_name) + ".png")
+                    out_path.parent.mkdir(parents=True, exist_ok=True)
+                    rec["image"].save(out_path)
+
+                    trace = [
+                        {
+                            "path": f"{actor_name}/{rec['name']}",
+                            "sprite": rec["name"],
+                            "write_mask_ref": 0,
+                            "read_mask_ref": 0,
+                            "blend_mode": "normal",
+                            "write_color": True,
+                            "reason": "simple_mode: direct sprite export",
+                        }
+                    ]
+                    trace_path = trace_root / cname
+                    trace_path.mkdir(parents=True, exist_ok=True)
+                    (trace_path / f"{sanitize_filename(combo_name)}.json").write_text(
+                        json.dumps(trace, ensure_ascii=False, indent=2), encoding="utf-8"
+                    )
+                    c_report["exported"] += 1
+
+                report["characters"][cname] = c_report
+                log(f"  [完成/simple_mode] 导出 {c_report['exported']} 张，跳过 {c_report['skipped']} 张")
+                continue
+
+            report["characters"][cname] = {"status": "skipped", "reason": f"{err}; simple_mode: {simple_err}"}
+            log(f"  [跳过] {err}; simple_mode: {simple_err}")
             continue
 
         comp_map: Dict[str, str] = data["comp_map"]

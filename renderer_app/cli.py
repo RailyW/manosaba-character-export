@@ -14,7 +14,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="严格按 bundle 材质语义渲染角色立绘")
     parser.add_argument("--characters-dir", default="resources/characters", help="角色 bundle 目录")
     parser.add_argument("--output-dir", default="output", help="输出目录")
-    parser.add_argument("--test", action="store_true", help="测试模式：每角色仅导出 3 张")
+    parser.add_argument(
+        "--test",
+        nargs="?",
+        const="__ALL__",
+        default=None,
+        metavar="CHARACTER",
+        help="测试模式。可选指定角色名：--test 或 --test yuki",
+    )
+    parser.add_argument(
+        "--character",
+        default=None,
+        metavar="CHARACTER",
+        help="仅导出指定角色的全部图像（非测试模式）。例如：--character yuki",
+    )
     parser.add_argument("--verbose", action="store_true", help="输出详细日志")
     return parser
 
