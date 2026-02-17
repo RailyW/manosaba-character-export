@@ -1,4 +1,3 @@
 *__pycache__
 .venv
 output
-resources/characters/*.bundle

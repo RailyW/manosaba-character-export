@@ -1,11 +1,9 @@
-# manosaba 渲染工具
+# 魔法少女的魔女审判 立绘导出工具
+本工具仅在Windows下进行开发和测试，没有针对Mac OS进行过兼容性测试，请自行测试。
 
-## 运行环境
+如果有问题或希望改进的功能，欢迎issue互动。
 
-- Python 3.10+
-- 已安装依赖：`UnityPy`、`Pillow`、`numpy`
-
-## 安装方式
+## 安装
 
 克隆仓库
 
@@ -20,7 +18,7 @@ pip install -r requirement.txt
 ```
 
 
-## 使用方式
+## 使用
 
 ### 0) 启动后输入游戏根目录
 
@@ -38,25 +36,24 @@ E:\game\steam\steamapps\common\manosaba_game
 <游戏根目录>\manosaba_Data\StreamingAssets\aa\StandaloneWindows64\naninovel-characters_assets_naninovel\characters
 ```
 
-### 1) 测试模式
+### 1) 测试
 
-每个角色导出前 3 个组合
+每个角色导出 3 个立绘：
 
 ```bash
 python main.py --test
 ```
 
-仅导出指定角色
+仅导出指定角色的 3 个立绘，例如仅测试 `yuki.bundle`：
 
-例如仅测试 `yuki.bundle`：
 
 ```bash
 python main.py --test yuki
 ```
 
-### 2) 全量导出
+### 2) 导出
 
-导出全部角色
+导出全部角色：
 
 ```bash
 python main.py
@@ -68,10 +65,10 @@ python main.py
 python main.py --character yuki
 ```
 
-### 3) 指定输入/输出目录
+### 3) 指定输出目录
 
 ```bash
-python main.py --characters-dir resources/characters --output-dir output
+python main.py --output-dir output
 ```
 
 ### 4) 打印详细日志
@@ -83,7 +80,6 @@ python main.py --verbose
 
 ## 命令行参数
 
-- `--characters-dir`：角色 bundle 目录，默认 `resources/characters`
 - `--output-dir`：输出目录，默认 `output`
 - `--test`：测试模式。
   - 不带值：每个角色仅导出前 3 张
