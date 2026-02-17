@@ -12,6 +12,12 @@
 
 将游戏的.bundle文件复制进入文件夹`resources/characters`。
 
+bundle文件存放位置：
+
+```
+manosaba_game\manosaba_Data\StreamingAssets\aa\StandaloneWindows64\naninovel-characters_assets_naninovel\characters
+```
+
 支持解析的人物：
 
 - alisa.bundle
