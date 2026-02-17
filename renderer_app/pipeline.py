@@ -28,6 +28,40 @@ from .utils import sanitize_filename
 from .whitelist import get_whitelist_roots
 
 
+def resolve_characters_dir_from_game_root(game_root: str) -> tuple[Path | None, str | None]:
+    """从游戏根目录解析 characters 目录，并做基础校验。
+
+    校验规则：
+    1. 游戏根目录必须存在；
+    2. 拼接后的 characters 目录必须存在；
+    3. characters 目录下至少包含一个 .bundle 文件。
+    """
+
+    if not game_root:
+        return None, "未输入游戏根目录。"
+
+    root_path = Path(game_root)
+    if not root_path.exists() or not root_path.is_dir():
+        return None, f"游戏根目录不存在或不是文件夹：{root_path}"
+
+    characters_path = (
+        root_path
+        / "manosaba_Data"
+        / "StreamingAssets"
+        / "aa"
+        / "StandaloneWindows64"
+        / "naninovel-characters_assets_naninovel"
+        / "characters"
+    )
+    if not characters_path.exists() or not characters_path.is_dir():
+        return None, f"characters 目录不存在：{characters_path}"
+
+    if not any(characters_path.glob("*.bundle")):
+        return None, f"characters 目录下未找到 .bundle 文件：{characters_path}"
+
+    return characters_path, None
+
+
 def run_pipeline(args) -> None:
     """执行完整渲染流水线。"""
 
@@ -38,7 +72,13 @@ def run_pipeline(args) -> None:
         if args.verbose:
             print(msg)
 
-    root = Path(args.characters_dir)
+    resolved_root, root_err = resolve_characters_dir_from_game_root(getattr(args, "game_root", ""))
+    if root_err:
+        print(f"[错误] {root_err}")
+        print("[示例] 请输入类似路径：E:\\game\\steam\\steamapps\\common\\manosaba_game")
+        return
+
+    root = resolved_root
     out_root = Path(args.output_dir)
     trace_root = out_root / "render_trace"
 

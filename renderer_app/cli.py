@@ -12,7 +12,6 @@ def build_parser() -> argparse.ArgumentParser:
     """
 
     parser = argparse.ArgumentParser(description="严格按 bundle 材质语义渲染角色立绘")
-    parser.add_argument("--characters-dir", default="resources/characters", help="角色 bundle 目录")
     parser.add_argument("--output-dir", default="output", help="输出目录")
     parser.add_argument(
         "--test",

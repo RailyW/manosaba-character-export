@@ -22,14 +22,20 @@ pip install -r requirement.txt
 
 ## 使用方式
 
-### 0) 指定导入文件
+### 0) 启动后输入游戏根目录
 
-将游戏的.bundle文件复制进入文件夹`resources/characters`。
+运行程序后，会提示你输入《魔法少女的魔女审判》游戏根目录。
 
-bundle文件存放位置：
+示例：
 
 ```
-manosaba_game\manosaba_Data\StreamingAssets\aa\StandaloneWindows64\naninovel-characters_assets_naninovel\characters
+E:\game\steam\steamapps\common\manosaba_game
+```
+
+程序会自动拼接为以下目录来查找 `.bundle` 文件：
+
+```
+<游戏根目录>\manosaba_Data\StreamingAssets\aa\StandaloneWindows64\naninovel-characters_assets_naninovel\characters
 ```
 
 ### 1) 测试模式

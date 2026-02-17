@@ -17,6 +17,14 @@ def main() -> None:
     """应用启动函数。"""
 
     args = parse_args()
+
+    # 运行时交互获取游戏根目录。
+    # 示例：E:\game\steam\steamapps\common\manosaba_game
+    print("请输入《魔法少女的魔女审判》游戏根目录（示例：E:\\game\\steam\\steamapps\\common\\manosaba_game）")
+    game_root = input("游戏根目录: ").strip().strip('"')
+    # main 层只负责收集输入，不做路径校验；校验逻辑放到 renderer_app。
+    args.game_root = game_root
+
     run_pipeline(args)
 
 
