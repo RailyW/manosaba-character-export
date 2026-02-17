@@ -5,6 +5,20 @@
 - Python 3.10+
 - 已安装依赖：`UnityPy`、`Pillow`、`numpy`
 
+## 安装方式
+
+克隆仓库
+
+```
+git clone git@github.com:RailyW/manosaba-character-export.git
+```
+
+安装依赖
+
+```
+pip install -r requirement.txt
+```
+
 
 ## 使用方式
 
