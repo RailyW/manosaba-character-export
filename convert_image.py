@@ -132,6 +132,19 @@ def resolve_go_path(path_token: str, all_go_paths: Set[str]) -> Optional[str]:
     return hits[0] if len(hits) == 1 else None
 
 
+def get_whitelist_roots(character_name: str, combo_name: str) -> List[str]:
+    """返回需要强制激活的 GO 路径（白名单）。"""
+    _ = combo_name  # 预留：后续可按表情/组合名做条件白名单
+    rules: Dict[str, List[str]] = {
+        "anan": ["AnAn/Angle01/Head/HeadBase"],
+        "nanoka": [
+            "Nanoka/Angle01/Body/Body01",
+            "Nanoka/Angle01/Head/Head01/HeadBase01",
+        ],
+    }
+    return rules.get(character_name.lower(), [])
+
+
 def classify_by_material(materials: List[str]) -> LayerDecision:
     primary = materials[0] if materials else "Naninovel_Default"
     low = primary.lower()
@@ -382,9 +395,11 @@ def pick_body_renderer(renderers: List[RendererEntry]) -> Optional[RendererEntry
     return renderers[0] if renderers else None
 
 
-def compose_active_renderers(active_renderers: List[RendererEntry]):
+def compose_active_renderers(active_renderers: List[RendererEntry], whitelisted_paths: Optional[Set[str]] = None):
     if not active_renderers:
         return None, "没有可渲染图层", {}, []
+
+    whitelisted_paths = whitelisted_paths or set()
 
     body = pick_body_renderer(active_renderers)
     if not body:
@@ -452,6 +467,10 @@ def compose_active_renderers(active_renderers: List[RendererEntry]):
         else:
             canvas.alpha_composite(img, (px, py))
 
+        reason = dec.reason
+        if r.go_path in whitelisted_paths:
+            reason = f"{reason} | whitelisted"
+
         trace.append(
             {
                 "path": r.go_path,
@@ -460,7 +479,7 @@ def compose_active_renderers(active_renderers: List[RendererEntry]):
                 "read_mask_ref": dec.read_mask_ref,
                 "blend_mode": dec.blend_mode,
                 "write_color": dec.write_color,
-                "reason": dec.reason,
+                "reason": reason,
             }
         )
 
@@ -536,6 +555,7 @@ def main() -> None:
             "skipped": 0,
             "unknown_tokens": {},
             "missing_paths": {},
+            "missing_whitelist_paths": {},
             "errors": {},
             "offset_source": "bundle Transform + SpriteRenderer + Material",
         }
@@ -561,6 +581,19 @@ def main() -> None:
                     else:
                         missing.append(rp)
 
+            whitelisted_roots: List[str] = []
+            missing_whitelisted_roots: List[str] = []
+            for wp in get_whitelist_roots(cname, combo_name):
+                mp = resolve_go_path(wp, all_go_paths)
+                if mp:
+                    whitelisted_roots.append(mp)
+                    selected_roots.append(mp)
+                else:
+                    missing_whitelisted_roots.append(wp)
+
+            # 去重但保留顺序
+            selected_roots = list(dict.fromkeys(selected_roots))
+
             if unknown:
                 c_report["skipped"] += 1
                 c_report["unknown_tokens"][combo_name] = unknown
@@ -570,8 +603,11 @@ def main() -> None:
                 c_report["missing_paths"][combo_name] = sorted(set(missing))
                 continue
 
+            if missing_whitelisted_roots:
+                c_report["missing_whitelist_paths"][combo_name] = sorted(set(missing_whitelisted_roots))
+
             active = [r for r in renderers if any(r.go_path == rootp or r.go_path.startswith(rootp + "/") for rootp in selected_roots)]
-            canvas, cerr, _placements, trace = compose_active_renderers(active)
+            canvas, cerr, _placements, trace = compose_active_renderers(active, set(whitelisted_roots))
             if canvas is None:
                 c_report["skipped"] += 1
                 c_report["errors"][combo_name] = cerr
