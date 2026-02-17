@@ -13,7 +13,6 @@
 from __future__ import annotations
 
 import json
-import shutil
 from pathlib import Path
 from typing import Dict, List, Set
 
@@ -72,27 +71,47 @@ def run_pipeline(args) -> None:
         if args.verbose:
             print(msg)
 
+    progress_callback = getattr(args, "progress_callback", None)
+
+    def emit_progress(event: str, **kwargs) -> None:
+        """向外部（如 GUI）发送可选进度事件。"""
+
+        if callable(progress_callback):
+            try:
+                progress_callback({"event": event, **kwargs})
+            except Exception:
+                # 进度回调失败不应影响主流程。
+                pass
+
     resolved_root, root_err = resolve_characters_dir_from_game_root(getattr(args, "game_root", ""))
     if root_err:
         print(f"[错误] {root_err}")
         print("[示例] 请输入类似路径：E:\\game\\steam\\steamapps\\common\\manosaba_game")
+        emit_progress("error", message=root_err)
         return
 
     root = resolved_root
     out_root = Path(args.output_dir)
     trace_root = out_root / "render_trace"
 
-    # 与原脚本一致：每次运行前清空 output 目录。
-    if out_root.exists():
-        shutil.rmtree(out_root)
-        log(f"[清理] 已清空输出目录：{out_root}")
+    # 若存在同名产物（png/json/report），在写入时会被覆盖。
+    log(f"[输出] 保留输出目录并按同名覆盖：{out_root}")
     out_root.mkdir(parents=True, exist_ok=True)
     trace_root.mkdir(parents=True, exist_ok=True)
 
     report = {"characters_root": str(root), "output_root": str(out_root), "characters": {}}
+    exported_total = 0
 
     all_bundles = sorted(root.glob("*.bundle"))
-    if args.character:
+
+    # GUI 批量模式：允许通过 args.characters 传入多个角色名（不区分大小写）。
+    selected_characters = getattr(args, "characters", None)
+    if selected_characters:
+        selected_set = {str(x).strip().lower() for x in selected_characters if str(x).strip()}
+        all_bundles = [b for b in all_bundles if b.stem.lower() in selected_set]
+        if not all_bundles:
+            log(f"[提示] 未找到指定角色集合：{sorted(selected_set)}")
+    elif args.character:
         target = str(args.character).strip().lower()
         all_bundles = [b for b in all_bundles if b.stem.lower() == target]
         if not all_bundles:
@@ -106,6 +125,7 @@ def run_pipeline(args) -> None:
     for bundle in all_bundles:
         cname = bundle.stem
         log(f"[角色] 开始处理：{cname}")
+        emit_progress("character_start", character=cname)
 
         data, err = load_bundle_character(bundle)
         if err:
@@ -154,13 +174,22 @@ def run_pipeline(args) -> None:
                         json.dumps(trace, ensure_ascii=False, indent=2), encoding="utf-8"
                     )
                     c_report["exported"] += 1
+                    exported_total += 1
+                    emit_progress(
+                        "combo_exported",
+                        character=cname,
+                        combo=combo_name,
+                        exported_total=exported_total,
+                    )
 
                 report["characters"][cname] = c_report
                 log(f"  [完成/simple_mode] 导出 {c_report['exported']} 张，跳过 {c_report['skipped']} 张")
+                emit_progress("character_done", character=cname, exported=c_report["exported"], skipped=c_report["skipped"])
                 continue
 
             report["characters"][cname] = {"status": "skipped", "reason": f"{err}; simple_mode: {simple_err}"}
             log(f"  [跳过] {err}; simple_mode: {simple_err}")
+            emit_progress("character_done", character=cname, exported=0, skipped=1)
             continue
 
         comp_map: Dict[str, str] = data["comp_map"]
@@ -270,10 +299,18 @@ def run_pipeline(args) -> None:
             )
 
             c_report["exported"] += 1
+            exported_total += 1
+            emit_progress(
+                "combo_exported",
+                character=cname,
+                combo=combo_name,
+                exported_total=exported_total,
+            )
             vlog(f"  [成功] {combo_name} -> {out_path}")
 
         report["characters"][cname] = c_report
         log(f"  [完成] 导出 {c_report['exported']} 张，跳过 {c_report['skipped']} 张")
+        emit_progress("character_done", character=cname, exported=c_report["exported"], skipped=c_report["skipped"])
 
     (out_root / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     total_exported = sum(v.get("exported", 0) for v in report["characters"].values() if isinstance(v, dict))
@@ -281,3 +318,4 @@ def run_pipeline(args) -> None:
     log(f"[汇总] 总导出 {total_exported} 张，总跳过 {total_skipped} 张")
     log(f"[完成] 报告：{out_root / 'report.json'}")
     log(f"[完成] 渲染追踪：{trace_root}")
+    emit_progress("done", exported=total_exported, skipped=total_skipped)
